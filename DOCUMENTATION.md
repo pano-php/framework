@@ -58,7 +58,7 @@ bring in. Pano gives you the rails; you drive the train.
 **Important:** Pano is distributed as a **pure library**.  
 Application-level files (`index.php`, `pano` CLI, `config/`, default modules, `.env.example`)
 are **not** included in the framework package. Use the official skeleton
-[`simcript/pano`](https://github.com/simcript/pano) for a ready-to-run application layout.
+[`pano-php/pano`](https://github.com/pano-php/pano) for a ready-to-run application layout.
 
 Pano is built around three concepts that you must understand before writing code:
 
@@ -79,7 +79,7 @@ Pano is built around three concepts that you must understand before writing code
 ### Installation (Library)
 
 ```bash
-composer require simcript/pano-framework
+composer require pano-php/pano-framework
 ```
 
 Pano has **zero** runtime Composer dependencies of its own.
@@ -87,7 +87,7 @@ Pano has **zero** runtime Composer dependencies of its own.
 ### Recommended: Use the Official Skeleton
 
 ```bash
-composer create-project simcript/pano my-app
+composer create-project pano-php/pano my-app
 cd my-app
 ```
 
@@ -159,7 +159,7 @@ That single call:
 ### Framework package (library only)
 
 ```text
-vendor/simcript/pano-framework/
+vendor/pano-php/pano-framework/
 └── src/
     ├── helpers.php
     ├── Kernel/          # Abstract contracts (Base*)

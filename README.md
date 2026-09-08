@@ -47,7 +47,7 @@ Avoid Pano if you need:
 - convention-based frameworks
 - beginner-friendly structure
 
-> For a ready-to-run application skeleton, use **[simcript/pano](https://github.com/simcript/pano)** instead.
+> For a ready-to-run application skeleton, use **[pano-php/pano](https://github.com/pano-php/pano)** instead.
 
 ---
 
@@ -75,7 +75,7 @@ These concepts are intentionally low-level and composable.
 ## Installation
 
 ```bash
-composer require simcript/pano-framework
+composer require pano-php/pano-framework
 ```
 
 ---
@@ -106,7 +106,7 @@ require BASE_PATH . 'vendor/autoload.php';
 Use the official skeleton for a complete working layout:
 
 ```bash
-composer create-project simcript/pano my-app
+composer create-project pano-php/pano my-app
 ```
 
 ```text
