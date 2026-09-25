@@ -75,7 +75,7 @@ These concepts are intentionally low-level and composable.
 ## Installation
 
 ```bash
-composer require pano-php/pano-framework
+composer require pano-php/framework
 ```
 
 ---

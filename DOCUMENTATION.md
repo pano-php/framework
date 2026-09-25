@@ -79,7 +79,7 @@ Pano is built around three concepts that you must understand before writing code
 ### Installation (Library)
 
 ```bash
-composer require pano-php/pano-framework
+composer require pano-php/framework
 ```
 
 Pano has **zero** runtime Composer dependencies of its own.
@@ -159,7 +159,7 @@ That single call:
 ### Framework package (library only)
 
 ```text
-vendor/pano-php/pano-framework/
+vendor/pano-php/framework/
 └── src/
     ├── helpers.php
     ├── Kernel/          # Abstract contracts (Base*)
