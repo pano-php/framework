@@ -19,9 +19,10 @@ abstract class BaseRouter
 
     abstract protected function notFound(): mixed;
 
-
     private array $routes = [];
     private array $commands = [];
+    private array $groupPrefixes = [];
+    private array $groupInterceptors = [];
 
     public function __construct(
         protected BaseRequest $request,
@@ -29,6 +30,24 @@ abstract class BaseRouter
         protected array       $interceptors = []
     )
     {
+    }
+
+    public function group(string $prefix, callable $callback, array $interceptors = []): void
+    {
+        $prefix = $this->normalizePath($prefix);
+        if ($prefix === '/') {
+            $prefix = '';
+        }
+
+        $this->groupPrefixes[] = $prefix;
+        $this->groupInterceptors[] = $interceptors;
+
+        try {
+            $callback($this);
+        } finally {
+            array_pop($this->groupPrefixes);
+            array_pop($this->groupInterceptors);
+        }
     }
 
     /**
@@ -70,27 +89,46 @@ abstract class BaseRouter
         string         $class,
         string         $action,
         array          $interceptors = []
-    ): void
-    {
+    ): void {
         if (!class_exists($class)) {
             throw new Exception("Handler ($class) not found");
         }
 
         $this->checkHandler($class, $action);
 
-        $path = $this->normalizePath($path);
+        $fullPath = $path;
+        if ($this->groupPrefixes !== []) {
+            $prefix = implode('', $this->groupPrefixes);
+            $normalizedPath = $this->normalizePath($path);
+            $fullPath = $prefix === ''
+                ? $normalizedPath
+                : rtrim($prefix, '/') . ($normalizedPath === '/' ? '' : $normalizedPath);
+        }
 
-        [$pattern, $params, $options] = $this->compile($path);
-        $interceptors = $this->interceptors + $interceptors;
+        $fullPath = $this->normalizePath($fullPath);
+
+        [$pattern, $params, $options] = $this->compile($fullPath);
+
+        $mergedInterceptors = $this->interceptors;
+        foreach ($this->groupInterceptors as $groupList) {
+            foreach ($groupList as $interceptor) {
+                $mergedInterceptors[] = $interceptor;
+            }
+        }
         foreach ($interceptors as $interceptor) {
+            $mergedInterceptors[] = $interceptor;
+        }
+
+        foreach ($mergedInterceptors as $interceptor) {
             $this->checkInterceptor($interceptor);
         }
+
         $this->routes[$method->value][] = [
-            'pattern' => $pattern,
-            'params' => $params,
-            'options' => $options,
-            'handler' => [$class, $action],
-            'interceptors' => $interceptors,
+            'pattern'      => $pattern,
+            'params'       => $params,
+            'options'      => $options,
+            'handler'      => [$class, $action],
+            'interceptors' => $mergedInterceptors,
         ];
     }
 
