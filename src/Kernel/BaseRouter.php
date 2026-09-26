@@ -19,16 +19,16 @@ abstract class BaseRouter
 
     abstract protected function notFound(): mixed;
 
-    protected BaseRequest $request;
-    protected BaseModule $module;
 
     private array $routes = [];
     private array $commands = [];
 
-    public function __construct(BaseRequest $request, BaseModule $module)
+    public function __construct(
+        protected BaseRequest $request,
+        protected BaseModule  $module,
+        protected array       $interceptors = []
+    )
     {
-        $this->request = $request;
-        $this->module = $module;
     }
 
     /**
@@ -81,6 +81,7 @@ abstract class BaseRouter
         $path = $this->normalizePath($path);
 
         [$pattern, $params, $options] = $this->compile($path);
+        $interceptors = $this->interceptors + $interceptors;
         foreach ($interceptors as $interceptor) {
             $this->checkInterceptor($interceptor);
         }
