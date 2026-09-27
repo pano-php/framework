@@ -17,7 +17,9 @@ abstract class BaseRouter
 
     abstract public function delete(string $path, string $class, string $action, array $interceptors = []): void;
 
-    abstract protected function notFound(): mixed;
+    abstract public function command(string $path, string $class): void;
+
+    abstract protected function notFound(): int;
 
     private array $routes = [];
     private array $commands = [];
@@ -30,6 +32,13 @@ abstract class BaseRouter
         protected array       $interceptors = []
     )
     {
+    }
+
+    public function handle(): int
+    {
+        return ($this->request->getMethod() === HttpMethodEnum::CLI)
+            ? $this->dispatchConsole()
+            : $this->dispatchHttp();
     }
 
     public function group(string $prefix, callable $callback, array $interceptors = []): void
@@ -50,39 +59,6 @@ abstract class BaseRouter
         }
     }
 
-    /**
-     * @throws Exception
-     */
-    public function command(string $path, string $class): void
-    {
-        if (!class_exists($class)) {
-            throw new Exception("Command ($class) not found");
-        }
-
-        $reflection = new ReflectionClass($class);
-        if (!$reflection->isSubclassOf(BaseCommand::class)) {
-            throw new Exception("Command ($class) must extend " . BaseCommand::class);
-        }
-
-        $path = $this->normalizePath($path);
-        [$pattern, $params, $options] = $this->compile($path);
-
-        $this->commands[] = [
-            'command' => explode('/', $path)[0],
-            'pattern' => $pattern,
-            'params' => $params,
-            'options' => $options,
-            'handler' => $class,
-        ];
-    }
-
-    public function handle(): mixed
-    {
-        return ($this->request->getMethod() === HttpMethodEnum::CLI)
-            ? $this->dispatchConsole()
-            : $this->dispatchHttp();
-    }
-
     protected function register(
         HttpMethodEnum $method,
         string         $path,
@@ -91,45 +67,64 @@ abstract class BaseRouter
         array          $interceptors = []
     ): void {
         if (!class_exists($class)) {
-            throw new Exception("Handler ($class) not found");
+            throw new Exception("Class ($class) not found");
         }
 
-        $this->checkHandler($class, $action);
+        if ($method === HttpMethodEnum::CLI) {
 
-        $fullPath = $path;
-        if ($this->groupPrefixes !== []) {
-            $prefix = implode('', $this->groupPrefixes);
-            $normalizedPath = $this->normalizePath($path);
-            $fullPath = $prefix === ''
-                ? $normalizedPath
-                : rtrim($prefix, '/') . ($normalizedPath === '/' ? '' : $normalizedPath);
-        }
+            $reflection = new ReflectionClass($class);
+            if (!$reflection->isSubclassOf(BaseCommand::class)) {
+                throw new Exception("Command ($class) must extend " . BaseCommand::class);
+            }
+            $path = $this->normalizePath($path);
+            [$pattern, $params, $options] = $this->compile($path);
 
-        $fullPath = $this->normalizePath($fullPath);
+            $this->commands[] = [
+                'command' => explode('/', $path)[0],
+                'pattern' => $pattern,
+                'params' => $params,
+                'options' => $options,
+                'handler' => $class,
+            ];
 
-        [$pattern, $params, $options] = $this->compile($fullPath);
+        } else {
+            $this->checkHandler($class, $action);
 
-        $mergedInterceptors = $this->interceptors;
-        foreach ($this->groupInterceptors as $groupList) {
-            foreach ($groupList as $interceptor) {
+            $fullPath = $path;
+            if ($this->groupPrefixes !== []) {
+                $prefix = implode('', $this->groupPrefixes);
+                $normalizedPath = $this->normalizePath($path);
+                $fullPath = $prefix === ''
+                    ? $normalizedPath
+                    : rtrim($prefix, '/') . ($normalizedPath === '/' ? '' : $normalizedPath);
+            }
+
+            $fullPath = $this->normalizePath($fullPath);
+
+            [$pattern, $params, $options] = $this->compile($fullPath);
+
+            $mergedInterceptors = $this->interceptors;
+            foreach ($this->groupInterceptors as $groupList) {
+                foreach ($groupList as $interceptor) {
+                    $mergedInterceptors[] = $interceptor;
+                }
+            }
+            foreach ($interceptors as $interceptor) {
                 $mergedInterceptors[] = $interceptor;
             }
-        }
-        foreach ($interceptors as $interceptor) {
-            $mergedInterceptors[] = $interceptor;
-        }
 
-        foreach ($mergedInterceptors as $interceptor) {
-            $this->checkInterceptor($interceptor);
-        }
+            foreach ($mergedInterceptors as $interceptor) {
+                $this->checkInterceptor($interceptor);
+            }
 
-        $this->routes[$method->value][] = [
-            'pattern'      => $pattern,
-            'params'       => $params,
-            'options'      => $options,
-            'handler'      => [$class, $action],
-            'interceptors' => $mergedInterceptors,
-        ];
+            $this->routes[$method->value][] = [
+                'pattern'      => $pattern,
+                'params'       => $params,
+                'options'      => $options,
+                'handler'      => [$class, $action],
+                'interceptors' => $mergedInterceptors,
+            ];
+        }
     }
 
     protected function compile(string $path): array
@@ -269,7 +264,7 @@ abstract class BaseRouter
     /**
      * @throws Exception
      */
-    private function dispatchConsole(): mixed
+    private function dispatchConsole(): int
     {
         $options = $this->request->getHeaders();
         $positional = $this->request->getData();
@@ -303,16 +298,18 @@ abstract class BaseRouter
                 }
             }
 
-            return (new $command['handler'](
+            /** @var BaseCommand $handler */
+            $handler = (new $command['handler'](
                 $this->request,
                 $this->module
-            ))->handle($params);
+            ));
+            return $handler->handle($params)->value;
         }
 
         return $this->notFound();
     }
 
-    private function dispatchHttp(): mixed
+    private function dispatchHttp(): int
     {
         $method = $this->request->getMethod();
         $uri = $this->normalizeUri($this->request->getUrl());
@@ -347,6 +344,7 @@ abstract class BaseRouter
 
             [$handlerClass, $action] = $route['handler'];
 
+            /** @var BaseHandler $handler */
             $handler = new $handlerClass(
                 $this->request,
                 $this->module

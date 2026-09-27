@@ -130,10 +130,10 @@ final class Response extends BaseResponse
         );
     }
 
-    public function send(): void
+    public function send(): int
     {
         if ($this->sent) {
-            return;
+            return $this->status->value;
         }
 
         if ($this->status instanceof HttpStatusEnum) {
@@ -151,6 +151,7 @@ final class Response extends BaseResponse
         }
 
         $this->sent = true;
+        return $this->status->value;
     }
 
 }

@@ -76,13 +76,25 @@ final class Router extends BaseRouter
     /**
      * @throws Exception
      */
-    protected function notFound(): mixed
+    public function command(string $path, string $class): void
+    {
+        try {
+            $this->register(HttpMethodEnum::CLI, $path, $class, 'handle');
+        } catch (\Exception $e) {
+            throw new Exception($e->getMessage(), $e->getCode(), HttpStatusEnum::INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    protected function notFound(): int
     {
         if (HttpMethodEnum::CLI === $this->request->getMethod()) {
             throw new Exception('Command not found', 404, HttpStatusEnum::NOT_FOUND);
         }
 
-        throw new Exception('Route not found', 404, HttpStatusEnum::NOT_FOUND);
+        throw new Exception('Page not found', 404, HttpStatusEnum::NOT_FOUND);
     }
 
 }

@@ -10,14 +10,18 @@ use ReflectionClass;
 
 final class Boot extends BaseBoot
 {
-    
+
     public function run(array $data, bool $cli = false): void
     {
-        $requestClass = $cli ? CLIRequest::class : Request::class;
-        $this->dispatcher($requestClass, $data);
+        if ($cli) {
+            exit($this->dispatcher(CLIRequest::class, $data));
+        }
+
+        $this->dispatcher(Request::class, $data);
+        exit(0);
     }
 
-    protected function dispatcher($requestClass, ...$args): void
+    protected function dispatcher($requestClass, ...$args): int
     {
         /** @var BaseRequest $request */
         $request = new $requestClass(...$args);
@@ -29,8 +33,7 @@ final class Boot extends BaseBoot
                     throw new Exception("No module found for '$module'");
                 }
                 $args[] = '';
-                $this->dispatcher($requestClass, ...$args);
-                return;
+                return $this->dispatcher($requestClass, ...$args);
             }
             if (!class_exists($moduleName)) {
                 throw new Exception("Module class ($moduleName) not found");
@@ -39,9 +42,9 @@ final class Boot extends BaseBoot
             if (!$reflection->isSubclassOf(BaseModule::class)) {
                 throw new Exception("Module ($moduleName) must extend " . BaseModule::class);
             }
-            $reflection->newInstance($request)->routes()->handle();
+            return $reflection->newInstance($request)->routes()->handle();
         } catch (\Throwable $e) {
-            Response::exception($e, $request)->send();
+            return Response::exception($e, $request)->send();
         }
     }
 

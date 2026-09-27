@@ -4,7 +4,7 @@ namespace Pano\Kernel;
 
 abstract class BaseResponse
 {
-    abstract public function send(): void;
+    abstract public function send(): int;
 
     protected HttpStatusEnum|ResultCodeEnum $status = HttpStatusEnum::OK;
     protected array $headers = [];
