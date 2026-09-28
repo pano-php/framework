@@ -10,6 +10,14 @@ use ReflectionClass;
 
 final class Boot extends BaseBoot
 {
+    public function __construct(string $basePath)
+    {
+        parent::__construct(
+            basePath: $basePath,
+            debug: config('app.debug', false),
+            timezone: (string) config('app.timezone', 'UTC')
+        );
+    }
 
     public function run(array $data, bool $cli = false): void
     {

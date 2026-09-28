@@ -91,11 +91,12 @@ if (!function_exists('config')) {
         return $result;
     }
 
-    if (!function_exists('currentUrl')) {
-        function currentUrl(): string
-        {
-            return trim(url($_SERVER['REQUEST_URI'] ?? '/'), '/');
-        }
+}
+
+if (!function_exists('currentUrl')) {
+    function currentUrl(): string
+    {
+        return trim(url($_SERVER['REQUEST_URI'] ?? '/'), '/');
     }
 }
 

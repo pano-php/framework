@@ -6,11 +6,16 @@ abstract class BaseBoot
 {
     abstract public function run(array $data): void;
 
-    public function __construct()
+    public function __construct(
+        public readonly string $basePath,
+        public readonly bool $debug,
+        public readonly string $timezone,
+    )
     {
+        define("BASE_PATH", $basePath);
         $this->envLoader();
-        $this->debug(config('app.debug', false));
-        date_default_timezone_set((string) config('app.timezone', 'UTC'));
+        $this->debug($debug);
+        date_default_timezone_set($timezone);
     }
 
     protected function debug(bool $status): void
