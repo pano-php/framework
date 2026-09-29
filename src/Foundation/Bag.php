@@ -4,7 +4,7 @@ namespace Pano\Foundation;
 
 use Pano\Kernel\BaseBag;
 
-final class Bag extends BaseBag
+class Bag extends BaseBag
 {
     private const PATH_SEPARATOR = '.';
 

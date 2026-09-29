@@ -2,17 +2,19 @@
 
 namespace Pano\Kernel;
 
-abstract class BaseBoot
+abstract readonly class BaseBoot
 {
     abstract public function run(array $data): void;
 
     public function __construct(
-        public readonly string $basePath,
-        public readonly bool $debug,
-        public readonly string $timezone,
+        protected BaseFoundation $foundation,
+        protected string $basePath,
+        protected bool $debug,
+        protected string $timezone,
     )
     {
-        define("BASE_PATH", $basePath);
+        defined('BASE_PATH') ?: define("BASE_PATH", $basePath);
+
         $this->envLoader();
         $this->debug($debug);
         date_default_timezone_set($timezone);
@@ -26,7 +28,7 @@ abstract class BaseBoot
 
     protected function envLoader(): void
     {
-        $envFilePath = BASE_PATH . '.env';
+        $envFilePath = $this->basePath . '.env';
 
         if (!is_file($envFilePath)) {
             return;

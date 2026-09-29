@@ -4,7 +4,7 @@ namespace Pano\Foundation;
 
 use Pano\Kernel\BaseException;
 
-final class Exception extends BaseException
+class Exception extends BaseException
 {
 
     public function toArray(bool $debug = false): array

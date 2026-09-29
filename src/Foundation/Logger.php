@@ -5,7 +5,7 @@ namespace Pano\Foundation;
 use Pano\Kernel\BaseLogger;
 use Pano\Kernel\LogLevelEnum;
 
-final class Logger extends BaseLogger
+class Logger extends BaseLogger
 {
     public function __construct(string $path)
     {

@@ -41,7 +41,7 @@ abstract class BaseRouter
             : $this->dispatchHttp();
     }
 
-    public function group(string $prefix, callable $callback, array $interceptors = []): void
+    protected function grouping(string $prefix, callable $callback, array $interceptors = []): void
     {
         $prefix = $this->normalizePath($prefix);
         if ($prefix === '/') {

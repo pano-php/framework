@@ -10,7 +10,7 @@ abstract readonly class BaseModule
 
     abstract public function log(): BaseLogger;
 
-    public function __construct(protected BaseRequest $request)
+    public function __construct(protected BaseRequest $request, public BaseFoundation $foundation)
     {
     }
 

@@ -5,7 +5,7 @@ namespace Pano\Foundation;
 use Pano\Kernel\BaseRequest;
 use Pano\Kernel\HttpMethodEnum;
 
-final class CLIRequest extends BaseRequest
+class CliRequest extends BaseRequest
 {
 
     public function __construct(array $data)

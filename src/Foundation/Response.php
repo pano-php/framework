@@ -9,7 +9,7 @@ use Pano\Kernel\HttpMethodEnum;
 use Pano\Kernel\HttpStatusEnum;
 use Pano\Kernel\ResultCodeEnum;
 
-final class Response extends BaseResponse
+class Response extends BaseResponse
 {
     private bool $sent = false;
 

@@ -6,7 +6,7 @@ use Pano\Kernel\BaseRouter;
 use Pano\Kernel\HttpMethodEnum;
 use Pano\Kernel\HttpStatusEnum;
 
-final class Router extends BaseRouter
+class Router extends BaseRouter
 {
 
     /**
@@ -21,7 +21,7 @@ final class Router extends BaseRouter
         try {
             $this->register(HttpMethodEnum::GET, $path, $class, $action, $interceptors);
         } catch (\Exception $e) {
-            throw new Exception($e->getMessage(), $e->getCode(), HttpStatusEnum::INTERNAL_SERVER_ERROR);
+            throw new ($this->module->foundation::exception())($e->getMessage(), $e->getCode(), HttpStatusEnum::INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -37,7 +37,7 @@ final class Router extends BaseRouter
         try {
             $this->register(HttpMethodEnum::POST, $path, $class, $action, $interceptors);
         } catch (\Exception $e) {
-            throw new Exception($e->getMessage(), $e->getCode(), HttpStatusEnum::INTERNAL_SERVER_ERROR);
+            throw new ($this->module->foundation::exception())($e->getMessage(), $e->getCode(), HttpStatusEnum::INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -53,7 +53,7 @@ final class Router extends BaseRouter
         try {
             $this->register(HttpMethodEnum::PUT, $path, $class, $action, $interceptors);
         } catch (\Exception $e) {
-            throw new Exception($e->getMessage(), $e->getCode(), HttpStatusEnum::INTERNAL_SERVER_ERROR);
+            throw new ($this->module->foundation::exception())($e->getMessage(), $e->getCode(), HttpStatusEnum::INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -69,7 +69,7 @@ final class Router extends BaseRouter
         try {
             $this->register(HttpMethodEnum::DELETE, $path, $class, $action, $interceptors);
         } catch (\Exception $e) {
-            throw new Exception($e->getMessage(), $e->getCode(), HttpStatusEnum::INTERNAL_SERVER_ERROR);
+            throw new ($this->module->foundation::exception())($e->getMessage(), $e->getCode(), HttpStatusEnum::INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -81,7 +81,19 @@ final class Router extends BaseRouter
         try {
             $this->register(HttpMethodEnum::CLI, $path, $class, 'handle');
         } catch (\Exception $e) {
-            throw new Exception($e->getMessage(), $e->getCode(), HttpStatusEnum::INTERNAL_SERVER_ERROR);
+            throw new ($this->module->foundation::exception())($e->getMessage(), $e->getCode(), HttpStatusEnum::INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function group(string $prefix, callable $callback, array $interceptors = []): void
+    {
+        try {
+            $this->grouping($prefix, $callback, $interceptors);
+        } catch (\Exception $e) {
+            throw new ($this->module->foundation::exception())($e->getMessage(), $e->getCode(), HttpStatusEnum::INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -91,10 +103,10 @@ final class Router extends BaseRouter
     protected function notFound(): int
     {
         if (HttpMethodEnum::CLI === $this->request->getMethod()) {
-            throw new Exception('Command not found', 404, HttpStatusEnum::NOT_FOUND);
+            throw new ($this->module->foundation::exception())('Command not found', 404, HttpStatusEnum::NOT_FOUND);
         }
 
-        throw new Exception('Page not found', 404, HttpStatusEnum::NOT_FOUND);
+        throw new ($this->module->foundation::exception())('Page not found', 404, HttpStatusEnum::NOT_FOUND);
     }
 
 }
