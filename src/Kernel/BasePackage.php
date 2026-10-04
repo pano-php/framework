@@ -12,7 +12,7 @@ abstract readonly class BasePackage extends BaseModule
 
     public function importPackages(): static
     {
-        throw new ($this->foundation::exception())("importPackages unsupported by Package");
+        throw new ($this->foundation::exception())("The 'importPackages' method is not supported for packages.");
     }
 
 }

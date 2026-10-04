@@ -16,6 +16,13 @@ if (!function_exists('url')) {
     }
 }
 
+if (!function_exists('path')) {
+    function path(string $path): string
+    {
+        return Support::path($path);
+    }
+}
+
 if (!function_exists('env')) {
     function env(string $key, mixed $default = null): mixed
     {

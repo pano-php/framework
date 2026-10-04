@@ -92,4 +92,9 @@ final class Support
         return trim(url($_SERVER['REQUEST_URI'] ?? '/'), '/');
     }
 
+    public static function path(string $path): string
+    {
+        return BASE_PATH . DIRECTORY_SEPARATOR . trim($path, DIRECTORY_SEPARATOR);
+    }
+
 }
