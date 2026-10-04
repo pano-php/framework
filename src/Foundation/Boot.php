@@ -56,7 +56,10 @@ final readonly class Boot extends BaseBoot
             if (!$reflection->isSubclassOf(BaseModule::class)) {
                 throw new ($this->foundation::exception())("Module ($moduleName) must extend " . BaseModule::class);
             }
-            return $reflection->newInstance($request, $this->foundation)->routes()->handle();
+            /** @var BaseModule $module */
+            $module = ($reflection->newInstance($request, $this->foundation));
+            $module->setRouter(new Router($request, $module))->importPackages()->setup();
+            return $module->getRouter()->handle();
         } catch (\Throwable $e) {
             return ($this->foundation::response())::exception($e, $request)->send();
         }

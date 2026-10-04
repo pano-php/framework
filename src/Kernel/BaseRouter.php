@@ -41,6 +41,16 @@ abstract class BaseRouter
             : $this->dispatchHttp();
     }
 
+    public function setModule(BaseModule $module): void
+    {
+        $this->module = $module;
+    }
+
+    public function setInterceptors(array $interceptors): void
+    {
+        $this->interceptors = $interceptors;
+    }
+
     protected function grouping(string $prefix, callable $callback, array $interceptors = []): void
     {
         $prefix = $this->normalizePath($prefix);
@@ -65,7 +75,8 @@ abstract class BaseRouter
         string         $class,
         string         $action,
         array          $interceptors = []
-    ): void {
+    ): void
+    {
         if (!class_exists($class)) {
             throw new Exception("Class ($class) not found");
         }
@@ -85,6 +96,7 @@ abstract class BaseRouter
                 'params' => $params,
                 'options' => $options,
                 'handler' => $class,
+                'module' => $this->module::class,
             ];
 
         } else {
@@ -118,11 +130,12 @@ abstract class BaseRouter
             }
 
             $this->routes[$method->value][] = [
-                'pattern'      => $pattern,
-                'params'       => $params,
-                'options'      => $options,
-                'handler'      => [$class, $action],
+                'pattern' => $pattern,
+                'params' => $params,
+                'options' => $options,
+                'handler' => [$class, $action],
                 'interceptors' => $mergedInterceptors,
+                'module' => $this->module::class,
             ];
         }
     }
@@ -301,7 +314,7 @@ abstract class BaseRouter
             /** @var BaseCommand $handler */
             $handler = (new $command['handler'](
                 $this->request,
-                $this->module
+                (new $command['module']($this->request, $this->module->foundation))
             ));
             return $handler->handle($params)->value;
         }
@@ -347,7 +360,7 @@ abstract class BaseRouter
             /** @var BaseHandler $handler */
             $handler = new $handlerClass(
                 $this->request,
-                $this->module
+                (new $route['module']($this->request, $this->module->foundation))
             );
 
             $response = $handler->$action(...$args);

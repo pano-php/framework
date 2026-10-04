@@ -2,16 +2,65 @@
 
 namespace Pano\Kernel;
 
+use ReflectionClass;
+
 abstract readonly class BaseModule
 {
-    abstract public function routes(): BaseRouter;
+    abstract public function setup(): void;
 
     abstract public function view(): BaseView;
 
     abstract public function log(): BaseLogger;
 
-    public function __construct(protected BaseRequest $request, public BaseFoundation $foundation)
+    protected BaseRouter $router;
+
+    public function __construct(
+        protected BaseRequest $request,
+        public BaseFoundation $foundation,
+        public array $packages = [],
+    )
     {
+    }
+
+    public function setRouter(BaseRouter $router): static
+    {
+        $router->setModule($this);
+        if (!isset($this->router)) {
+            $this->router = $router;
+        }
+        return $this;
+    }
+
+    public function getRouter(): BaseRouter
+    {
+        return $this->router;
+    }
+
+    public function importPackages(): static
+    {
+        try {
+            foreach ($this->packages as $package => $parameters) {
+                if (is_numeric($package)) {
+                    $package = $parameters;
+                    $parameters = [];
+                }
+                if (!class_exists($package)) {
+                    throw new ($this->foundation::exception())("Package ($package) not exists");
+                }
+
+                $reflection = new ReflectionClass($package);
+                if (!$reflection->isSubclassOf(BaseModule::class)) {
+                    throw new ($this->foundation::exception())("Module ($package) must extend " . BasePackage::class);
+                }
+                /** @var BasePackage $package */
+                $packageClass = ($reflection->newInstance($this->request, $this->foundation, ...$parameters));
+                $packageClass->setRouter($this->router)->setup();
+            }
+            $this->setRouter($this->router);
+        } catch (\Throwable $exception) {
+            throw new ($this->foundation::exception())($exception->getMessage() . PHP_EOL . $exception->getTraceAsString());
+        }
+        return $this;
     }
 
     protected function viewPath(): string

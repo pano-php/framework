@@ -115,11 +115,11 @@ Because Pano is a pure library, you bootstrap it yourself (or let the skeleton d
 // public/index.php
 
 define('PANO_STARTED', microtime(true));
-define('BASE_PATH', rtrim(__DIR__ . '/../', DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR);
+$basePath = rtrim(__DIR__, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR;
 
-require BASE_PATH . 'vendor/autoload.php';
+require $basePath . '/vendor/autoload.php';
 
-(new \Pano\Foundation\Boot())->run($_SERVER);
+(new \Pano\Foundation\Boot($basePath))->run($_SERVER);
 ```
 
 ### Minimal CLI entry point
@@ -130,17 +130,17 @@ require BASE_PATH . 'vendor/autoload.php';
 // pano (executable)
 
 define('PANO_STARTED', microtime(true));
-define('BASE_PATH', rtrim(__DIR__, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR);
+$basePath = rtrim(__DIR__, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR;
 
-require BASE_PATH . 'vendor/autoload.php';
+require $basePath . '/vendor/autoload.php';
 
-(new \Pano\Foundation\Boot())->run($argv, true);
+(new \Pano\Foundation\Boot($basePath))->run($argv);
 ```
 
 `Boot::run(array $data, bool $cli = false)`:
 
 - Web → pass `$_SERVER`
-- CLI → pass `$argv` and set `$cli = true`
+- CLI → pass `$argv`
 
 That single call:
 
