@@ -147,6 +147,7 @@ Such as:
 - rendering multiple response types
 - a minimal template engine
 - execution management
+- modular composition (modules and packages)
 
 Pano does not try to replace every tool.
 
@@ -162,9 +163,15 @@ However, the Kernel itself is intentionally tiny and minimal.
 
 On top of this Kernel sits an execution foundation that is entirely replaceable.
 
+The Foundation is where concrete runtime choices live: how modules are resolved,
+which classes implement request, response, router, view, and logger, and how the
+process boots. Developers may replace the entire Foundation while still honoring
+the Kernel contracts.
+
 This allows developers to:
 
 - build their own foundation
+- define their own module registry and resolution strategy
 - create their own framework
 - and then build applications on top of that foundation
 
@@ -187,6 +194,7 @@ In this model:
 - each module is isolated
 - each module is independently developed
 - each module operates on top of the foundation
+- packages may extend a module without becoming independent applications
 
 But this architecture is not absolute.
 
@@ -203,6 +211,7 @@ Such as:
 - Handlers
 - Interceptors
 - Bag
+- Packages
 
 These concepts do not exist to enforce architecture.
 

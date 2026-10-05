@@ -56,10 +56,11 @@ Avoid Pano if you need:
 Pano introduces a minimal set of runtime concepts:
 
 - **Kernel** – abstract contracts only (`Pano\Kernel\*`)
-- **Foundation** – default concrete implementations (`Pano\Foundation\*`) – replaceable
-- **Modules** – isolated application domains
+- **Foundation** – default concrete implementations (`Pano\Foundation\*`) – replaceable (module registry, class bindings)
+- **Modules** – isolated application domains (`setup()`, routes, views, logs)
+- **Packages** – composable extensions that attach to a module (`BasePackage`)
 - **Handlers** – executable processing units
-- **Interceptors** – request/response pipeline
+- **Interceptors** – request/response pipeline (including route groups)
 
 These concepts are intentionally low-level and composable.
 
@@ -82,7 +83,7 @@ composer require pano-php/framework
 
 ## Quick Start (Library Usage)
 
-Since Pano is now a pure library, you must bootstrap it yourself (or use the official skeleton).
+Since Pano is a pure library, you must bootstrap it yourself (or use the official skeleton).
 
 Minimal bootstrap example:
 
@@ -91,13 +92,18 @@ Minimal bootstrap example:
 // public/index.php (or your entry point)
 
 define('PANO_STARTED', microtime(true));
-define('BASE_PATH', rtrim(__DIR__ . '/../', DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR);
+$basePath = rtrim(__DIR__, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR;
 
-require BASE_PATH . 'vendor/autoload.php';
+require $basePath . 'vendor/autoload.php';
 
-(new \Pano\Foundation\Boot())->run($_SERVER);          // Web
-// (new \Pano\Foundation\Boot())->run($argv, true);    // CLI
+// Optional: pass a custom Foundation that defines your module registry
+(new \Pano\Foundation\Boot($basePath))->run($_SERVER);   // Web
+// (new \Pano\Foundation\Boot($basePath))->run($argv);  // CLI
 ```
+
+Modules are resolved through `Foundation::module()`. Extend `BaseFoundation` (or the
+default `Foundation`) and set `protected static array $modules` to map URL/CLI keys
+to module classes. Modules register routes inside `setup()` after packages are imported.
 
 ---
 
@@ -115,15 +121,24 @@ my-app/
 ├── public/
 │   └── index.php             # Web front controller
 ├── config/
-│   ├── app.php
-│   └── modules.php
-├── modules/                  # Your application modules
-│   └── Default/
-│       ├── DefaultModule.php
-│       ├── Handlers/
-│       ├── Interceptors/
-│       ├── Commands/
-│       └── Views/
+│   └── app.php
+├── src/                      # Optional: custom Foundation, etc.
+│   ├── Foundation/
+│   │   └── Foundation.php    # module registry ($modules)
+│   ├── Modules/              # Your application modules (namespace Modules\)
+│   │   └── Default/
+│   │     ├── DefaultModule.php
+│   │     ├── Handlers/
+│   │     ├── Interceptors/
+│   │     ├── Commands/
+│   │     └── Views/
+│   └── Packages/              # Your application packages (namespace Packages\)
+│       └── Default/
+│         ├── DefaultPackage.php
+│         ├── Handlers/
+│         ├── Interceptors/
+│         ├── Commands/
+│         └── Views/
 ├── .env
 └── composer.json
 ```
@@ -146,7 +161,6 @@ return [
     'key'      => env('APP_KEY', null),             // Application key (used for encryption/signing if needed)
     'debug'    => env('APP_DEBUG', false),          // Show detailed errors (true in development)
     'url'      => env('APP_URL', null),             // Base URL of the application (used by url() helper and subdomain resolver)
-    'resolver' => env('MODULE_RESOLVER', 'path'),   // Module resolver: "path" or "subdomain"
     'timezone' => env('APP_TIMEZONE', 'UTC'),       // Default timezone (optional but recommended)
 ];
 ```
@@ -158,8 +172,30 @@ return [
 | `key`      | string\|null | `null`   | Application secret key                           |
 | `debug`    | bool         | `false`  | Enable/disable detailed error display            |
 | `url`      | string\|null | `null`   | Base application URL                             |
-| `resolver` | string       | `path`   | How modules are resolved (`path` or `subdomain`) |
 | `timezone` | string       | `UTC`    | Default timezone for the application             |
+
+### Module registry
+
+Module key → class mapping is **not** read from `config/modules.php`.  
+Register modules on your Foundation:
+
+```php
+namespace App\Foundation;
+
+use Pano\Foundation\Foundation as Base;
+use Modules\Default\DefaultModule;
+
+class Foundation extends Base
+{
+    protected static array $modules = [
+        '' => DefaultModule::class,
+    ];
+}
+```
+
+```php
+(new \Pano\Foundation\Boot($basePath, new \App\Foundation\Foundation()))->run($_SERVER);
+```
 
 ### Corresponding `.env` example
 
@@ -169,7 +205,6 @@ APP_ENV=local
 APP_KEY=base64:your-generated-key-here
 APP_DEBUG=true
 APP_URL=https://example.com
-MODULE_RESOLVER=path
 APP_TIMEZONE=UTC
 ```
 

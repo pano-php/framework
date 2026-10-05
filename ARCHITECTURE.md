@@ -73,6 +73,8 @@ Including:
 - response contracts
 - runtime context contracts
 - execution boundaries
+- package contracts (`BasePackage`)
+- foundation contracts (`BaseFoundation`) for swappable runtime class resolution and module registry
 
 The Kernel should never contain application-specific behavior.
 
@@ -92,6 +94,10 @@ The Foundation is responsible for:
 - template rendering
 - runtime coordination
 - default execution flow
+- module class resolution via a static registry (`BaseFoundation::$modules` / `module()`)
+- path-resolver strategy (`isPathResolver()`)
+
+The constant `FOUNDATION` is defined at boot time and points to the active foundation instance, allowing Kernel contracts and modules to resolve concrete classes without hard-coding the default Foundation.
 
 ---
 
@@ -105,6 +111,7 @@ Developers may:
 - create custom runtime behavior
 - define alternative execution flows
 - build their own framework on top of the Kernel
+- override module resolution and path strategy by extending `BaseFoundation`
 
 The Kernel remains stable while Foundations may vary.
 
@@ -120,6 +127,12 @@ Each module should remain:
 - independently maintainable
 - independently understandable
 - explicitly bounded
+
+Modules declare their routes, interceptors and packages inside the `setup()` method.
+
+Modules may import packages (`importPackages()`) before calling `setup()`. Packages are specialized modules that extend `BasePackage` and cannot themselves import further packages.
+
+Modules expose a `path()` helper that resolves filesystem paths relative to the module class location (Views, Files, Logs, etc.).
 
 Modules should communicate through explicit contracts rather than implicit shared state.
 
@@ -150,7 +163,7 @@ Contains runtime configuration and environment configuration.
 
 ## Kernel
 
-Contains execution contracts and runtime abstractions.
+Contains execution contracts and runtime abstractions (`Base*` classes, including `BaseFoundation`, `BaseModule`, `BasePackage`, `BaseRouter`, …).
 
 ---
 
@@ -185,6 +198,12 @@ Runtime Initialization
     ↓
 Request Resolution
     ↓
+Module Resolution (Foundation::module)
+    ↓
+Router + Package Import
+    ↓
+Module setup()
+    ↓
 Interceptor Pipeline
     ↓
 Handler Execution
@@ -193,7 +212,7 @@ Response Resolution
     ↓
 Response Dispatch
     ↓
-Termination
+Termination (CLI exit code / process exit)
 ```
 
 Execution flow should remain understandable and observable.
@@ -211,6 +230,8 @@ Interceptors may:
 - perform authorization
 - observe runtime behavior
 - alter execution flow
+
+Routers support default interceptors and route grouping with shared prefixes and interceptors (`grouping()`).
 
 Interceptors should remain transport-independent.
 
@@ -263,10 +284,12 @@ This separation allows runtime flexibility across multiple transport layers.
 
 Pano supports extension primarily through:
 
-- Foundation replacement
+- Foundation replacement (`BaseFoundation` + concrete Foundation)
 - module composition
-- interceptor pipelines
+- packages (`BasePackage` extending `BaseModule`)
+- interceptor pipelines (including group-level and default interceptors)
 - runtime contracts
+- route grouping with shared prefixes and interceptors
 
 Extensions should preserve execution predictability.
 
@@ -297,6 +320,7 @@ The following rules should always remain true:
 - execution flow must remain observable
 - runtime mutation must remain explicit
 - architectural assumptions must not become mandatory
+- packages cannot import other packages
 
 ---
 
