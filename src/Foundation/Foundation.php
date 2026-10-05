@@ -4,8 +4,9 @@ namespace Pano\Foundation;
 
 use Pano\Kernel\BaseFoundation;
 
-readonly class Foundation extends BaseFoundation
+class Foundation extends BaseFoundation
 {
+
     public static function exception(): string
     {
         return Exception::class;
@@ -45,4 +46,5 @@ readonly class Foundation extends BaseFoundation
     {
         return Bag::class;
     }
+
 }

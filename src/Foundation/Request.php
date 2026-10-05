@@ -27,7 +27,7 @@ class Request extends BaseRequest
     {
         if ($module !== null) {
             $this->module = $module;
-        } else if (config('app.resolver') === 'subdomain') {
+        } else if ((FOUNDATION)::isPathResolver() === false) {
             $host = parse_url($this->host, PHP_URL_HOST);
             $rootDomain = parse_url(config('app.url'), PHP_URL_HOST);
 
@@ -157,7 +157,7 @@ class Request extends BaseRequest
 
         $path ??= '/';
 
-        if (config('app.resolver') !== 'subdomain') {
+        if ((FOUNDATION)::isPathResolver()) {
             $path = substr(trim($path, '/'), strlen($this->getModule()));
         }
 

@@ -14,6 +14,7 @@ abstract readonly class BaseBoot
     )
     {
         defined('BASE_PATH') ?: define("BASE_PATH", $basePath);
+        define("FOUNDATION", $foundation);
 
         $this->envLoader();
         $this->debug($debug);

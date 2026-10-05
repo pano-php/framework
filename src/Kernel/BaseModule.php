@@ -45,12 +45,12 @@ abstract readonly class BaseModule
                     $parameters = [];
                 }
                 if (!class_exists($package)) {
-                    throw new ($this->foundation::exception())("Package ($package) not exists");
+                    throw new ((FOUNDATION)::exception())("Package ($package) not exists");
                 }
 
                 $reflection = new ReflectionClass($package);
                 if (!$reflection->isSubclassOf(BaseModule::class)) {
-                    throw new ($this->foundation::exception())("Module ($package) must extend " . BasePackage::class);
+                    throw new ((FOUNDATION)::exception())("Module ($package) must extend " . BasePackage::class);
                 }
                 /** @var BasePackage $package */
                 $packageClass = ($reflection->newInstance($this->request, $this->foundation, ...$parameters));
@@ -58,7 +58,7 @@ abstract readonly class BaseModule
             }
             $this->setRouter($this->router);
         } catch (\Throwable $exception) {
-            throw new ($this->foundation::exception())($exception->getMessage() . PHP_EOL . $exception->getTraceAsString());
+            throw new ((FOUNDATION)::exception())($exception->getMessage() . PHP_EOL . $exception->getTraceAsString());
         }
         return $this;
     }

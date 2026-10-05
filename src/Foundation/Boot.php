@@ -28,10 +28,10 @@ final readonly class Boot extends BaseBoot
     public function run(array $data): void
     {
         if (PHP_SAPI === 'cli') {
-            exit($this->dispatcher($this->foundation::cliRequest(), $data));
+            exit($this->dispatcher((FOUNDATION)::cliRequest(), $data));
         }
 
-        $this->dispatcher($this->foundation::request(), $data);
+        $this->dispatcher((FOUNDATION)::request(), $data);
         exit(0);
     }
 
@@ -41,27 +41,27 @@ final readonly class Boot extends BaseBoot
         $request = new $requestClass(...$args);
         try {
             $module = $request->getModule();
-            $moduleName = config('modules.' . $module, null);
+            $moduleName = (FOUNDATION)::module($module);
             if ($moduleName === null) {
                 if (($module === '') || ($request->getMethod() === HttpMethodEnum::CLI)) {
-                    throw new ($this->foundation::exception())("No module found for '$module'");
+                    throw new ((FOUNDATION)::exception())("No module found for '$module'");
                 }
                 $args[] = '';
                 return $this->dispatcher($requestClass, ...$args);
             }
             if (!class_exists($moduleName)) {
-                throw new ($this->foundation::exception())("Module class ($moduleName) not found");
+                throw new ((FOUNDATION)::exception())("Module class ($moduleName) not found");
             }
             $reflection = new ReflectionClass($moduleName);
             if (!$reflection->isSubclassOf(BaseModule::class)) {
-                throw new ($this->foundation::exception())("Module ($moduleName) must extend " . BaseModule::class);
+                throw new ((FOUNDATION)::exception())("Module ($moduleName) must extend " . BaseModule::class);
             }
             /** @var BaseModule $module */
-            $module = ($reflection->newInstance($request, $this->foundation));
+            $module = ($reflection->newInstance($request, FOUNDATION));
             $module->setRouter(new Router($request, $module))->importPackages()->setup();
             return $module->getRouter()->handle();
         } catch (\Throwable $e) {
-            return ($this->foundation::response())::exception($e, $request)->send();
+            return ((FOUNDATION)::response())::exception($e, $request)->send();
         }
     }
 

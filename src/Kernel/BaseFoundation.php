@@ -2,8 +2,20 @@
 
 namespace Pano\Kernel;
 
-abstract readonly class BaseFoundation
+abstract class BaseFoundation
 {
+    protected static array $modules = [];
+
+    public static function isPathResolver(): bool
+    {
+        return true;
+    }
+
+    final public static function module(string $prefix): ?string
+    {
+        return static::$modules[$prefix] ?? null;
+    }
+
     /** @return class-string<BaseException> */
     abstract public static function exception(): string;
 
