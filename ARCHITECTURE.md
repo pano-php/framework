@@ -95,7 +95,7 @@ The Foundation is responsible for:
 - runtime coordination
 - default execution flow
 - module class resolution via a static registry (`Base(FOUNDATION)::$modules` / `module()`)
-- path-resolver strategy (`isPathResolver()`)
+- per-module resolution via `ModuleResolverEnum` and `resolver()`
 
 The constant `FOUNDATION` is defined at boot time and points to the active foundation instance, allowing Kernel contracts and modules to resolve concrete classes without hard-coding the default Foundation.
 
@@ -111,7 +111,7 @@ Developers may:
 - create custom runtime behavior
 - define alternative execution flows
 - build their own framework on top of the Kernel
-- override module resolution and path strategy by extending `BaseFoundation`
+- override module registry entries and per-key `ModuleResolverEnum` strategy by extending `BaseFoundation`
 
 The Kernel remains stable while Foundations may vary.
 
@@ -131,6 +131,9 @@ Each module should remain:
 Modules declare their routes, interceptors and packages inside the `setup()` method.
 
 Modules may import packages (`importPackages()`) before calling `setup()`. Packages are specialized modules that extend `BasePackage` and cannot themselves import further packages.
+
+How a module key is selected for an incoming request is controlled per entry by
+`ModuleResolverEnum` (`PATH`, `SUBDOMAIN`, `HOST`, `QUERY`, `HEADER`) on the Foundation registry.
 
 Modules expose a `path()` helper that resolves filesystem paths relative to the module class location (Views, Files, Logs, etc.).
 

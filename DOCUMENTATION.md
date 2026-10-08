@@ -292,7 +292,7 @@ return [
     'key'      => env('APP_KEY', null),
     'debug'    => env('APP_DEBUG', false),
     'url'      => env('APP_URL', null),
-    'resolver' => env('MODULE_RESOLVER', 'path'),   // "path" | "subdomain"
+    'timezone' => env('APP_TIMEZONE', 'UTC'),       // optional; Boot default UTC
     'timezone' => env('APP_TIMEZONE', 'UTC'),
 ];
 ```
@@ -311,20 +311,25 @@ return [
 
 Module key → class mapping lives on the **Foundation**, not in `config/modules.php`.
 
-Override `BaseFoundation` (or the default `Foundation`) and populate the static `$modules` map:
+Override `BaseFoundation` (or the default `Foundation`) and populate the static `$modules` map.
+Each entry is either a class string (resolver defaults to `PATH`) or `['class' => …, 'resolver' => ModuleResolverEnum::…]`:
 
 ```php
 namespace App\Foundation;
 
 use Pano\Foundation\Foundation as Base;
+use Pano\Kernel\ModuleResolverEnum;
 use Modules\Default\DefaultModule;
 use Modules\Blog\BlogModule;
 
 class Foundation extends Base
 {
     protected static array $modules = [
-        ''     => DefaultModule::class,   // default / root
-        'blog' => BlogModule::class,
+        ''     => DefaultModule::class,   // default / root (PATH)
+        'blog' => [
+            'class'    => BlogModule::class,
+            'resolver' => ModuleResolverEnum::PATH,
+        ],
     ];
 }
 ```
@@ -449,28 +454,65 @@ Register every module on your Foundation’s static `$modules` map
 
 ### Module Resolution
 
-Controlled by `(FOUNDATION)::isPathResolver()` (default `true`) and optionally
-`config('app.resolver')` / `MODULE_RESOLVER` in application config for documentation:
+Each module key in `Foundation::$modules` may declare its own resolver via
+`Pano\Kernel\ModuleResolverEnum`. Entries can be either a class string
+(defaults to `PATH`) or an array with `class` and `resolver`:
 
-**Path resolver (default, `isPathResolver() === true`)**  
-First URL segment = module key. Rest = route path.
+```php
+use Pano\Kernel\ModuleResolverEnum;
 
-| URL              | Module key | Route path   |
-|------------------|------------|--------------|
-| `/blog/posts/12` | `blog`     | `/posts/12`  |
-| `/`              | `''`       | `/`          |
+protected static array $modules = [
+    '' => DefaultModule::class,  // defaults to PATH
 
-**Subdomain resolver (`isPathResolver() === false`)**  
-Subdomain = module key. Root domain is taken from `APP_URL`.
+    'blog' => [
+        'class'    => BlogModule::class,
+        'resolver' => ModuleResolverEnum::PATH,
+    ],
 
-| Host                       | Module key |
-|----------------------------|------------|
-| `blog.example.com`         | `blog`     |
-| `api.v2.example.com`       | `api.v2`   |
-| `example.com`              | `''`       |
+    'api.example.com' => [
+        'class'    => ApiModule::class,
+        'resolver' => ModuleResolverEnum::HOST,
+    ],
 
-If the resolved key has no matching entry in `(FOUNDATION)::$modules`, Pano throws  
-`No module found for '<name>'`.
+    'admin' => [
+        'class'    => AdminModule::class,
+        'resolver' => ModuleResolverEnum::SUBDOMAIN,
+    ],
+];
+```
+
+#### `ModuleResolverEnum` values
+
+| Resolver | How the key is matched |
+|----------|------------------------|
+| `PATH` | First URL path segment equals the key |
+| `SUBDOMAIN` | Subdomain of the host (relative to `config('app.url')`) equals the key |
+| `HOST` | Full request host equals the key |
+| `QUERY` | Query parameter named by `Foundation::param()` (default `module`) equals the key |
+| `HEADER` | Request header named by `Foundation::param()` equals the key |
+
+Match priority when resolving a request: **HOST → SUBDOMAIN → PATH → QUERY → HEADER**.  
+The first matching registered key wins. If nothing matches, the root module key `''` is used.
+
+**PATH examples**
+
+| URL | Module key | Route path (after stripping key) |
+|-----|------------|----------------------------------|
+| `/blog/posts/12` | `blog` | `posts/12` |
+| `/` | `''` | (empty) |
+
+**SUBDOMAIN examples** (`APP_URL=https://example.com`)
+
+| Host | Module key |
+|------|------------|
+| `blog.example.com` | `blog` |
+| `example.com` | `''` |
+
+**HOST example:** key `api.example.com` matches only that exact host.
+
+**QUERY / HEADER:** use `?module=blog` or header `module: blog` when `param()` returns `module` (override `param()` on your Foundation if needed).
+
+If the resolved key has no class in `$modules`, Pano throws `No module found for '<name>'`.
 
 ---
 
@@ -1298,7 +1340,7 @@ engine does not suit you, you can swap it without forking Pano.
 
 Any Foundation class is fair game:
 
-- `Foundation` itself (`BaseFoundation`) — module registry (`$modules`), path vs subdomain resolver (`isPathResolver()`), and the class-map methods (`exception()`, `request()`, `router()`, …).
+- `Foundation` itself (`BaseFoundation`) — module registry (`$modules` with per-key `ModuleResolverEnum`), `param()` for query/header resolution, and the class-map methods (`exception()`, `request()`, `router()`, …).
 - `Request` / `CLIRequest` — custom request parsing (e.g. PSR-7 adapters).
 - `Router` — a different dispatch strategy.
 - `Response` — alternative output formats.
@@ -1334,10 +1376,6 @@ class Foundation extends BaseFoundation
         '' => DefaultModule::class,
     ];
 
-    public static function isPathResolver(): bool
-    {
-        return true; // or false for subdomain resolution
-    }
 
     public static function exception(): string { return Exception::class; }
     public static function request(): string { return Request::class; }

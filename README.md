@@ -56,7 +56,7 @@ Avoid Pano if you need:
 Pano introduces a minimal set of runtime concepts:
 
 - **Kernel** – abstract contracts only (`Pano\Kernel\*`)
-- **Foundation** – default concrete implementations (`Pano\Foundation\*`) – replaceable (module registry, class bindings)
+- **Foundation** – default concrete implementations (`Pano\Foundation\*`) – replaceable (module registry with `ModuleResolverEnum`, class bindings)
 - **Modules** – isolated application domains (`setup()`, routes, views, logs)
 - **Packages** – composable extensions that attach to a module (`BasePackage`)
 - **Handlers** – executable processing units
@@ -177,18 +177,25 @@ return [
 ### Module registry
 
 Module key → class mapping is **not** read from `config/modules.php`.  
-Register modules on your Foundation:
+Register modules on your Foundation. Each entry is a class string (defaults to
+`ModuleResolverEnum::PATH`) or an array with `class` + `resolver`:
 
 ```php
 namespace App\Foundation;
 
 use Pano\Foundation\Foundation as Base;
+use Pano\Kernel\ModuleResolverEnum;
 use Modules\Default\DefaultModule;
+use Modules\Blog\BlogModule;
 
 class Foundation extends Base
 {
     protected static array $modules = [
         '' => DefaultModule::class,
+        'blog' => [
+            'class'    => BlogModule::class,
+            'resolver' => ModuleResolverEnum::PATH,
+        ],
     ];
 }
 ```
@@ -196,6 +203,8 @@ class Foundation extends Base
 ```php
 (new \Pano\Foundation\Boot($basePath, new \App\Foundation\Foundation()))->run($_SERVER);
 ```
+
+Resolvers: `PATH`, `SUBDOMAIN`, `HOST`, `QUERY`, `HEADER` (see framework DOCUMENTATION).
 
 ### Corresponding `.env` example
 
