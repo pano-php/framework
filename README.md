@@ -101,7 +101,7 @@ require $basePath . 'vendor/autoload.php';
 // (new \Pano\Foundation\Boot($basePath))->run($argv);  // CLI
 ```
 
-Modules are resolved through `Foundation::module()`. Extend `BaseFoundation` (or the
+Modules are resolved through `(FOUNDATION)::module()`. Extend `BaseFoundation` (or the
 default `Foundation`) and set `protected static array $modules` to map URL/CLI keys
 to module classes. Modules register routes inside `setup()` after packages are imported.
 

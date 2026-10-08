@@ -37,9 +37,9 @@ final readonly class Boot extends BaseBoot
 
     protected function dispatcher($requestClass, ...$args): int
     {
-        /** @var BaseRequest $request */
-        $request = new $requestClass(...$args);
         try {
+            /** @var BaseRequest $request */
+            $request = new $requestClass(...$args);
             $module = $request->getModule();
             $moduleName = (FOUNDATION)::module($module);
             if ($moduleName === null) {
@@ -58,7 +58,7 @@ final readonly class Boot extends BaseBoot
             }
             /** @var BaseModule $module */
             $module = ($reflection->newInstance($request, FOUNDATION));
-            $module->setRouter(new Router($request, $module))->importPackages()->setup();
+            $module->setRouter(new ((FOUNDATION)::router())($request, $module))->importPackages()->setup();
             return $module->getRouter()->handle();
         } catch (\Throwable $e) {
             return ((FOUNDATION)::response())::exception($e, $request)->send();

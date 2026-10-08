@@ -49,7 +49,7 @@ abstract readonly class BaseModule
                 }
 
                 $reflection = new ReflectionClass($package);
-                if (!$reflection->isSubclassOf(BaseModule::class)) {
+                if (!$reflection->isSubclassOf(BasePackage::class)) {
                     throw new ((FOUNDATION)::exception())("Module ($package) must extend " . BasePackage::class);
                 }
                 /** @var BasePackage $package */

@@ -147,7 +147,7 @@ That single call:
 1. defines the `FOUNDATION` constant and loads `.env` (via constructor),
 2. configures error reporting and timezone,
 3. builds a `Request` / `CLIRequest`,
-4. resolves the target module via `Foundation::module()`,
+4. resolves the target module via `(FOUNDATION)::module()`,
 5. instantiates the module, imports packages, runs `setup()`,
 6. dispatches the matched handler / command through the router,
 7. sends the response (and exits with a proper CLI code when applicable).
@@ -256,7 +256,7 @@ Boot::run($data)
 dispatcher()
    ├── new Request|CLIRequest
    ├── request->getModule()           → resolves module key (path or subdomain)
-   ├── Foundation::module($key)       → maps key to module class
+   ├── (FOUNDATION)::module($key)       → maps key to module class
    ├── new $Module($request, FOUNDATION)
    ├── setRouter() → importPackages() → setup()
    └── $module->getRouter()->handle()
@@ -336,7 +336,7 @@ Then pass your foundation into Boot:
 ```
 
 The empty-string key (`''`) is the module that serves the root when using path-based resolution.
-`Boot` resolves modules exclusively through `Foundation::module($key)`.
+`Boot` resolves modules exclusively through `(FOUNDATION)::module($key)`.
 
 ### Reading config
 
@@ -449,7 +449,7 @@ Register every module on your Foundation’s static `$modules` map
 
 ### Module Resolution
 
-Controlled by `Foundation::isPathResolver()` (default `true`) and optionally
+Controlled by `(FOUNDATION)::isPathResolver()` (default `true`) and optionally
 `config('app.resolver')` / `MODULE_RESOLVER` in application config for documentation:
 
 **Path resolver (default, `isPathResolver() === true`)**  
@@ -469,7 +469,7 @@ Subdomain = module key. Root domain is taken from `APP_URL`.
 | `api.v2.example.com`       | `api.v2`   |
 | `example.com`              | `''`       |
 
-If the resolved key has no matching entry in `Foundation::$modules`, Pano throws  
+If the resolved key has no matching entry in `(FOUNDATION)::$modules`, Pano throws  
 `No module found for '<name>'`.
 
 ---
@@ -1124,7 +1124,7 @@ php pano <module-path> <command> [positional args...] [--options...]
 
 The module path mirrors what you would see in a URL:
 
-- For the **root** module (registered under the `''` key in `Foundation::$modules`):
+- For the **root** module (registered under the `''` key in `(FOUNDATION)::$modules`):
 
   ```bash
   php pano / app:info

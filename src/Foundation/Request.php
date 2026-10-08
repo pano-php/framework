@@ -4,6 +4,7 @@ namespace Pano\Foundation;
 
 use Pano\Kernel\BaseRequest;
 use Pano\Kernel\HttpMethodEnum;
+use Pano\Kernel\ModuleResolverEnum;
 
 class Request extends BaseRequest
 {
@@ -11,9 +12,9 @@ class Request extends BaseRequest
     {
         $this->fetchMethod($data)
             ->fetchSegments($data)
-            ->setModule($module)
             ->fetchQuery($data)
             ->fetchHost($data)
+            ->setModule($module)
             ->fetchUrl()
             ->fetchData()
             ->fetchFiles()
@@ -27,25 +28,103 @@ class Request extends BaseRequest
     {
         if ($module !== null) {
             $this->module = $module;
-        } else if ((FOUNDATION)::isPathResolver() === false) {
-            $host = parse_url($this->host, PHP_URL_HOST);
-            $rootDomain = parse_url(config('app.url'), PHP_URL_HOST);
-
-            if ((empty($host) || empty($rootDomain))
-                || (($host === $rootDomain)
-                    || !str_ends_with($host, '.' . $rootDomain))) {
-                $this->module = '';
-            } else {
-                $this->module = rtrim(
-                    substr($host, 0, -strlen($rootDomain)),
-                    '.'
-                );
-            }
-        } else {
-            $this->module = $this->segments[0] ?? '';
+            return $this;
         }
 
+        $byResolver = [
+            ModuleResolverEnum::HOST->value      => [],
+            ModuleResolverEnum::SUBDOMAIN->value => [],
+            ModuleResolverEnum::PATH->value      => [],
+            ModuleResolverEnum::QUERY->value     => [],
+            ModuleResolverEnum::HEADER->value    => [],
+        ];
+
+        foreach ((FOUNDATION)::modules() as $key => $entry) {
+            if ($key === '') {
+                continue;
+            }
+
+            $resolver = is_array($entry)
+                ? ($entry['resolver'] ?? ModuleResolverEnum::PATH)
+                : ModuleResolverEnum::PATH;
+
+            if ($resolver instanceof ModuleResolverEnum) {
+                $resolver = $resolver->value;
+            }
+
+            if (isset($byResolver[$resolver])) {
+                $byResolver[$resolver][] = $key;
+            }
+        }
+
+        foreach ($byResolver as $resolver => $keys) {
+            foreach ($keys as $key) {
+                if ($this->matches($key, $resolver)) {
+                    $this->module = $key;
+                    return $this;
+                }
+            }
+        }
+
+        $this->module = '';
         return $this;
+    }
+
+    private function matches(string $key, string $resolver): bool
+    {
+        return match ($resolver) {
+            ModuleResolverEnum::HOST->value      => $this->matchHost($key),
+            ModuleResolverEnum::SUBDOMAIN->value => $this->matchSubdomain($key),
+            ModuleResolverEnum::PATH->value      => $this->matchPath($key),
+            ModuleResolverEnum::QUERY->value     => $this->matchQuery($key),
+            ModuleResolverEnum::HEADER->value    => $this->matchHeader($key),
+            default                              => false,
+        };
+    }
+
+    private function matchHost(string $key): bool
+    {
+        $host = parse_url($this->host, PHP_URL_HOST);
+
+        return $host !== null && $host !== '' && $host === $key;
+    }
+
+    private function matchSubdomain(string $key): bool
+    {
+        $host = parse_url($this->host, PHP_URL_HOST);
+        $rootDomain = parse_url(config('app.url'), PHP_URL_HOST);
+
+        if (empty($host) || empty($rootDomain)
+            || $host === $rootDomain
+            || !str_ends_with($host, '.' . $rootDomain)
+        ) {
+            return $key === '';
+        }
+
+        $subdomain = rtrim(substr($host, 0, -strlen($rootDomain)), '.');
+
+        return $subdomain === $key;
+    }
+
+    private function matchPath(string $key): bool
+    {
+        $segment = $this->segments[0] ?? '';
+
+        return $segment === $key;
+    }
+
+    private function matchQuery(string $key): bool
+    {
+        $value = $this->queries[(FOUNDATION)::param()] ?? null;
+
+        return is_string($value) && $value === $key;
+    }
+
+    private function matchHeader(string $key): bool
+    {
+        $value = $this->headers[(FOUNDATION)::param()] ?? null;
+
+        return is_string($value) && $value === $key;
     }
 
     public function getModule(): string
@@ -156,12 +235,18 @@ class Request extends BaseRequest
         );
 
         $path ??= '/';
+        $path = trim($path, '/');
 
-        if ((FOUNDATION)::isPathResolver()) {
-            $path = substr(trim($path, '/'), strlen($this->getModule()));
+        $module = $this->getModule();
+
+        if (($module !== '')
+            && ((FOUNDATION)::resolver($module) === ModuleResolverEnum::PATH)
+            && str_starts_with($path, $module)
+        ) {
+            $path = ltrim(substr($path, strlen($module)), '/');
         }
 
-        $this->url = trim($path, '/');
+        $this->url = $path;
 
         return $this;
     }

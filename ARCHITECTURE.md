@@ -94,7 +94,7 @@ The Foundation is responsible for:
 - template rendering
 - runtime coordination
 - default execution flow
-- module class resolution via a static registry (`BaseFoundation::$modules` / `module()`)
+- module class resolution via a static registry (`Base(FOUNDATION)::$modules` / `module()`)
 - path-resolver strategy (`isPathResolver()`)
 
 The constant `FOUNDATION` is defined at boot time and points to the active foundation instance, allowing Kernel contracts and modules to resolve concrete classes without hard-coding the default Foundation.
@@ -198,7 +198,7 @@ Runtime Initialization
     ↓
 Request Resolution
     ↓
-Module Resolution (Foundation::module)
+Module Resolution ((FOUNDATION)::module)
     ↓
 Router + Package Import
     ↓

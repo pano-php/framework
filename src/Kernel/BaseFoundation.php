@@ -6,14 +6,36 @@ abstract class BaseFoundation
 {
     protected static array $modules = [];
 
-    public static function isPathResolver(): bool
+    final public static function resolver(string $key): ModuleResolverEnum
     {
-        return true;
+        $entry = static::$modules[$key] ?? null;
+
+        if (is_array($entry) && isset($entry['resolver'])) {
+            return $entry['resolver'];
+        }
+
+        return ModuleResolverEnum::PATH;
     }
 
-    final public static function module(string $prefix): ?string
+    final public static function module(string $key): ?string
     {
-        return static::$modules[$prefix] ?? null;
+        $entry = static::$modules[$key] ?? null;
+
+        if ($entry === null) {
+            return null;
+        }
+
+        return is_array($entry) ? ($entry['class'] ?? null) : $entry;
+    }
+
+    final public static function modules(): array
+    {
+        return static::$modules;
+    }
+
+    public static function param(): string
+    {
+        return 'module';
     }
 
     /** @return class-string<BaseException> */
