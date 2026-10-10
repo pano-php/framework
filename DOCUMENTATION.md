@@ -144,8 +144,8 @@ require $basePath . '/vendor/autoload.php';
 
 That single call:
 
-1. defines the `FOUNDATION` constant and loads `.env` (via constructor),
-2. configures error reporting and timezone,
+1. defines `BASE_PATH`, loads `.env` (`envLoader`) and `config/*.php` (`configLoader` → `$_ENV['#_configs_#']`),
+2. defines `FOUNDATION`, configures error reporting and timezone,
 3. builds a `Request` / `CLIRequest`,
 4. resolves the target module via `(FOUNDATION)::module()`,
 5. instantiates the module, imports packages, runs `setup()`,
@@ -242,10 +242,12 @@ In the skeleton they live under the `Modules\` namespace (e.g. `Modules\Blog\Blo
 Entry point (index.php / pano)
    │
    ▼
-Boot::__construct()
-   ├── define FOUNDATION      → active Foundation instance
-   ├── envLoader()            → parses .env into $_ENV / $_SERVER
-   ├── debug()                → sets error_reporting & display_errors
+Boot::__construct($basePath, Foundation)
+   ├── define BASE_PATH
+   ├── envLoader()            → parses .env into $_ENV
+   ├── configLoader()         → loads config/*.php into $_ENV['#_configs_#']
+   ├── define FOUNDATION      → active Foundation instance (BaseBoot)
+   ├── debug()                → error_reporting & display_errors
    └── timezone               → date_default_timezone_set(config('app.timezone'))
    │
    ▼
@@ -255,8 +257,8 @@ Boot::run($data)
    ▼
 dispatcher()
    ├── new Request|CLIRequest
-   ├── request->getModule()           → resolves module key (path or subdomain)
-   ├── (FOUNDATION)::module($key)       → maps key to module class
+   ├── request->getModule()           → ModuleResolverEnum match order
+   ├── Foundation::module($key)       → class from $modules registry
    ├── new $Module($request, FOUNDATION)
    ├── setRouter() → importPackages() → setup()
    └── $module->getRouter()->handle()
@@ -279,7 +281,7 @@ No request should crash the process uncaught.
 ## 7. Configuration
 
 All configuration lives in `config/*.php` (relative to `BASE_PATH`).  
-Each file returns an array and is loaded lazily by the `config()` helper.
+`Boot::configLoader()` loads every `config/*.php` file at bootstrap into `$_ENV['#_configs_#']`. The `config()` helper reads from that cache (via `env('#_configs_#')`) with dot notation.
 
 ### Minimum required `config/app.php`
 
@@ -385,13 +387,33 @@ Always available (autoloaded via `composer.json`):
 |----------|-------------|
 | `env(string $key, mixed $default = null): mixed` | Read environment variable |
 | `config(string $key, mixed $default = null): mixed` | Read config with dot notation |
-| `url(string $path): string` | Absolute URL using `app.url` |
+| `url(string $path, ?string $moduleParam = null): string` | Absolute URL; optional module key uses that module's `ModuleResolverEnum` to build host/path/query |
 | `path(string $path): string` | Absolute filesystem path under `BASE_PATH` |
 | `currentUrl(): string` | Absolute URL of the current request |
 | `dd(...$args): void` | Dump and die (CLI-colored or HTML-styled) |
 
 ---
 
+
+### `url()` and module-aware links
+
+```php
+url('/posts');                 // current host / path style
+url('/posts', 'blog');         // build URL for module key "blog"
+```
+
+When `$moduleParam` is set, Pano looks up that key in `Foundation::$modules` and
+builds the URL according to its resolver:
+
+| Resolver | URL shape (simplified) |
+|----------|------------------------|
+| `PATH` | `/{module}/…` |
+| `SUBDOMAIN` | `{module}.{host}/…` |
+| `HOST` | host = module key |
+| `QUERY` | `…?{param}={key}` (`param` from `Foundation::param()`, default `module`) |
+| `HEADER` | same path on current host (module is selected via header at request time) |
+
+---
 ## 10. Modules
 
 A module is a `final readonly` class extending `Pano\Kernel\BaseModule`.  
@@ -1407,14 +1429,20 @@ namespace App\Foundation;
 
 use Pano\Kernel\BaseBoot;
 use Pano\Kernel\BaseFoundation;
+use Pano\Foundation\Foundation;
 
 final class Boot extends BaseBoot
 {
-    public function __construct(string $basePath, BaseFoundation $foundation = new Foundation())
-    {
+    public function __construct(
+        protected string $basePath,
+        BaseFoundation $foundation = new Foundation()
+    ) {
+        define('BASE_PATH', $this->basePath);
+        // load env + config before parent so config() works for debug/timezone
+        $this->envLoader();
+        $this->configLoader();
         parent::__construct(
             foundation: $foundation,
-            basePath: $basePath,
             debug: config('app.debug', false),
             timezone: (string) config('app.timezone', 'UTC')
         );
@@ -1426,6 +1454,10 @@ final class Boot extends BaseBoot
     }
 }
 ```
+
+`BaseBoot` only accepts `foundation`, `debug`, and `timezone`. Loading `.env` and
+`config/*.php` is the responsibility of the concrete Boot (default Foundation Boot
+does this via `envLoader()` / `configLoader()`).
 
 ### The contract you must honor
 

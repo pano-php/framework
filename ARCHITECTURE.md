@@ -94,8 +94,10 @@ The Foundation is responsible for:
 - template rendering
 - runtime coordination
 - default execution flow
-- module class resolution via a static registry (`Base(FOUNDATION)::$modules` / `module()`)
-- per-module resolution via `ModuleResolverEnum` and `resolver()`
+- module class resolution via a static registry (`BaseFoundation::$modules` / `module()` / `modules()`)
+- per-module resolution via `ModuleResolverEnum` and `resolver()` / `param()`
+- bootstrap loading of `.env` and `config/*.php` (concrete Boot: `envLoader` / `configLoader`)
+- module-aware URL generation (`url($path, $moduleParam)`)
 
 The constant `FOUNDATION` is defined at boot time and points to the active foundation instance, allowing Kernel contracts and modules to resolve concrete classes without hard-coding the default Foundation.
 
@@ -195,13 +197,13 @@ Contains application modules and domain logic.
 The default runtime lifecycle is intentionally explicit.
 
 ```text
-Bootstrap
+Bootstrap (BASE_PATH, envLoader, configLoader, FOUNDATION)
     ↓
-Runtime Initialization
+Runtime Initialization (debug, timezone)
     ↓
 Request Resolution
     ↓
-Module Resolution ((FOUNDATION)::module)
+Module Resolution (ModuleResolverEnum → Foundation::module)
     ↓
 Router + Package Import
     ↓
