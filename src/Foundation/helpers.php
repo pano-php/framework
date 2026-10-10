@@ -10,9 +10,9 @@ if (!function_exists('dd')) {
 }
 
 if (!function_exists('url')) {
-    function url(string $path): string
+    function url(string $path, ?string $moduleParam = null): string
     {
-        return Support::url($path);
+        return Support::url($path, $moduleParam);
     }
 }
 

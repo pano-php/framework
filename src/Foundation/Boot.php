@@ -12,16 +12,18 @@ use ReflectionClass;
 final readonly class Boot extends BaseBoot
 {
     public function __construct(
-        string $basePath,
-        BaseFoundation $foundation = new Foundation()
+        protected string $basePath,
+        BaseFoundation   $foundation = new Foundation()
     )
     {
-        define("BASE_PATH", $basePath);
+        define("BASE_PATH", $this->basePath);
+        $this->envLoader();
+        $this->configLoader();
+
         parent::__construct(
             foundation: $foundation,
-            basePath: $basePath,
             debug: config('app.debug', false),
-            timezone: (string) config('app.timezone', 'UTC')
+            timezone: (string)config('app.timezone', 'UTC')
         );
     }
 
@@ -63,6 +65,67 @@ final readonly class Boot extends BaseBoot
         } catch (\Throwable $e) {
             return ((FOUNDATION)::response())::exception($e, $request)->send();
         }
+    }
+
+    protected function configLoader(): void
+    {
+        $configs = [];
+        $configPath = $this->basePath . '/config';
+
+        if (is_dir($configPath)) {
+            foreach (glob($configPath . '/*.php') as $file) {
+                $name = basename($file, '.php');
+                $configs[$name] = require $file;
+            }
+        }
+        $_ENV['#_configs_#'] = $configs;
+    }
+
+    protected function envLoader(): void
+    {
+        $envFilePath = $this->basePath . '.env';
+
+        if (!is_file($envFilePath)) {
+            return;
+        }
+
+        $lines = file($envFilePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+        foreach ($lines as $line) {
+
+            $line = trim($line);
+
+            if ($line === '' || str_starts_with($line, '#')) {
+                continue;
+            }
+
+            if (!str_contains($line, '=')) {
+                continue;
+            }
+
+            [$name, $value] = explode('=', $line, 2);
+
+            $name = trim($name);
+            $value = trim($value);
+
+            $value = trim($value, '"\'');
+
+            $parsed = $this->parseEnvValue($value);
+
+            $_ENV[$name] = $parsed;
+
+            putenv("$name=$value");
+        }
+    }
+
+    private function parseEnvValue(string $value): mixed
+    {
+        return match (strtolower($value)) {
+            'true' => true,
+            'false' => false,
+            'null' => null,
+            default => is_numeric($value) ? $value + 0 : $value,
+        };
     }
 
 }

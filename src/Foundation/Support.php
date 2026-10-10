@@ -2,6 +2,8 @@
 
 namespace Pano\Foundation;
 
+use Pano\Kernel\ModuleResolverEnum;
+
 final class Support
 {
 
@@ -49,9 +51,30 @@ final class Support
         exit;
     }
 
-    public static function url(string $path): string
+
+    public static function url(string $path, ?string $moduleParam = null): string
     {
-        return trim(config('app.url'), '/') . '/' . trim($path, '/');
+        $host = $_SERVER['HTTP_HOST'] ?? config('app.url');
+        $scheme = $_SERVER['REQUEST_SCHEME'] ?? 'http';
+        $query = trim($_SERVER['QUERY_STRING'] ?? '');
+        $path = trim(trim($path), '/');
+        if ($moduleParam !== null) {
+            $moduleParam = trim(trim($moduleParam), '/');
+            $module = (FOUNDATION)::modules()[$moduleParam];
+            $type = ($module['resolver'] ?? ModuleResolverEnum::PATH)->value;
+        } else {
+            $moduleParam = '';
+            $type = null;
+        }
+
+        return match ($type) {
+            ModuleResolverEnum::HOST->value => "$scheme://$moduleParam/$path",
+            ModuleResolverEnum::SUBDOMAIN->value => $moduleParam === '' ? "$scheme://$host/$path" : "$scheme://$moduleParam.$host/$path",
+            ModuleResolverEnum::QUERY->value => "$scheme://$host/$path?$query" . ($query === '' ? '?' : '&') . (FOUNDATION)::param() . "=$moduleParam",
+            ModuleResolverEnum::PATH->value => $moduleParam === '' ? "$scheme://$host/$path" : "$scheme://$host/$moduleParam/$path",
+            ModuleResolverEnum::HEADER->value => "$scheme://$host/$path",
+            default => "$scheme://$host/$path",
+        };
     }
 
     public static function env(string $key, mixed $default = null): mixed
@@ -63,20 +86,7 @@ final class Support
 
     public static function config(string $key, mixed $default = null): mixed
     {
-        static $configs = [];
-
-        if (empty($configs)) {
-            $configPath = BASE_PATH . '/config';
-
-            if (is_dir($configPath)) {
-                foreach (glob($configPath . '/*.php') as $file) {
-                    $name = basename($file, '.php');
-                    $configs[$name] = require $file;
-                }
-            }
-        }
-
-        $result = $configs;
+        $result = env('#_configs_#', []);
 
         foreach (explode('.', $key) as $segment) {
             if (!is_array($result) || !array_key_exists($segment, $result)) {
